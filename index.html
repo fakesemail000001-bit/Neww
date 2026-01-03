@@ -1,8 +1,8 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Voice Recorder (Guaranteed Working)</title>
+<title>Voice Record & Playback</title>
 
 <style>
 body {
@@ -28,18 +28,18 @@ audio {
   max-width:400px;
 }
 #status {
-  margin-top: 15px;
-  color: #aaa;
+  opacity:0.8;
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🎙 Voice Recorder (Non-AI)</h2>
-<p>Click Start → Speak → Stop</p>
+<h2>🎙 Record → Play (Non-AI)</h2>
+<p>Speak softly, then stop</p>
 
-<button id="start">🎤 Start Recording</button>
+<button id="start">🎤 Start</button>
 <button id="stop" disabled>⏹ Stop</button>
 
 <div id="status">Idle</div>
@@ -50,51 +50,49 @@ audio {
 let mediaRecorder;
 let chunks = [];
 
-const status = document.getElementById("status");
 const startBtn = document.getElementById("start");
 const stopBtn = document.getElementById("stop");
+const status = document.getElementById("status");
+const player = document.getElementById("player");
 
 startBtn.onclick = async () => {
   try {
-    status.textContent = "Requesting microphone permission...";
-
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    status.textContent = "Recording...";
+    mediaRecorder = new MediaRecorder(stream);
     chunks = [];
 
-    mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = e => chunks.push(e.data);
 
     mediaRecorder.start();
+    status.textContent = "Recording...";
     startBtn.disabled = true;
     stopBtn.disabled = false;
 
-  } catch (err) {
-    alert("Microphone access denied or not supported");
-    status.textContent = "Mic error ❌";
-    console.error(err);
+  } catch (e) {
+    alert("Mic error");
+    console.error(e);
   }
 };
 
 stopBtn.onclick = () => {
   mediaRecorder.stop();
-  status.textContent = "Processing...";
+  status.textContent = "Preparing playback...";
 
   mediaRecorder.onstop = () => {
-    const blob = new Blob(chunks, { type: "audio/webm" });
+    const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
     const url = URL.createObjectURL(blob);
 
-    const audio = document.getElementById("player");
-    audio.src = url;
+    player.src = url;
 
-    // Female-like illusion
-    audio.playbackRate = 1.15;
-    audio.volume = 0.85;
+    // 🔑 APPLY AFTER METADATA LOAD
+    player.onloadedmetadata = () => {
+      player.playbackRate = 1.15; // female-like pitch illusion
+      player.volume = 0.9;
+      player.play();
+      status.textContent = "Playing ✔";
+    };
 
-    audio.play();
-
-    status.textContent = "Done ✔️";
     startBtn.disabled = false;
     stopBtn.disabled = true;
   };
